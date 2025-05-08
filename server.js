@@ -12,6 +12,9 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 // Explicitly serve JS files from js directory
 app.use('/js', express.static(path.join(__dirname, 'js')));
 
+// Explicitly serve image files from images directory
+app.use('/images', express.static(path.join(__dirname, 'images')));
+
 // Serve the main HTML file
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
