@@ -1,4 +1,4 @@
-# HEIC to JPEG Converter
+# HEIC to JPEG Converter (iPhone2JPEG)
 
 A simple web app to convert HEIC images (from iPhones) to JPEG format.
 
