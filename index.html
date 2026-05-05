@@ -4,54 +4,220 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HEIC to JPEG Converter</title>
-    <link rel="stylesheet" href="/public/style.css">
     <!-- Popunder ad - loads early so it's ready to fire on first user interaction -->
     <script src="https://pl29342222.profitablecpmratenetwork.com/24/97/74/2497742dcfb344aa37e0930112a374aa.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            color: #1d1d1f;
+        }
+
+        .upload-area {
+            border: 2px dashed #0071e3;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            background-color: #f0f0f0;
+        }
+
+        .upload-area.dragover {
+            background-color: #e8f0fe;
+            border-color: #0071e3;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .button {
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #0077ed;
+        }
+
+        .button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 1rem;
+            color: #666;
+        }
+
+        .error {
+            color: #ff3b30;
+        }
+
+        .success {
+            color: #34c759;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>HEIC to JPEG Converter</h1>
-        <p>Convert your iPhone HEIC photos to JPEG format</p>
+        <form id="upload-form" action="/convert" method="post" enctype="multipart/form-data">
+            <div class="upload-area" id="drop-area">
+                <p>Drag and drop your HEIC file here<br>or click to select</p>
+                <input type="file" id="file-input" name="file" accept=".heic,.heif">
+            </div>
+            <button type="submit" class="button" id="convert-btn" disabled>Convert to JPEG</button>
+        </form>
+        <div id="status"></div>
 
-        <div class="upload-container">
-            <label for="file-input" class="upload-label">
-                <div class="upload-box" id="drop-area">
-                    <span id="upload-text">Drag & drop HEIC files here or click to browse</span>
-                </div>
-            </label>
-            <input type="file" id="file-input" accept=".heic,.HEIC" multiple hidden>
-        </div>
-        
-        <div id="preview-container" class="hidden">
-            <h2>Files to convert (<span id="file-count">0</span>)</h2>
-            <div id="file-list"></div>
-            <button id="convert-btn" class="btn">Convert to JPEG</button>
-        </div>
-        
-        <div id="results-container" class="hidden">
-            <h2>Converted Images</h2>
-            <div id="results-list"></div>
-            <button id="download-all-btn" class="btn">Download All</button>
-
-            <!-- Smartlink CTA - appears post-conversion when user engagement is highest -->
-            <p style="margin-top: 1.5rem;">
-                <a href="https://www.profitablecpmratenetwork.com/a6aqy0bfqb?key=da87be2ab005cbb8e400ba6c94a808b6"
-                   target="_blank" rel="noopener"
-                   style="display:inline-block; padding:10px 20px; background-color:#34c759; color:white; text-decoration:none; border-radius:8px; font-weight:600;">
-                    Try More Free Tools
-                </a>
-            </p>
-        </div>
-
-        <!-- Native banner - high-visibility position above the static rectangle ads -->
-        <div class="native-ad" style="margin: 1.5rem 0;">
+        <!-- Native banner - sits below the converter where attention naturally lands after action -->
+        <div class="native-ad" style="margin-top: 1.5rem;">
             <script async="async" data-cfasync="false" src="https://pl29342223.profitablecpmratenetwork.com/a6124cde9fa308e68457454b67a4a031/invoke.js"></script>
             <div id="container-a6124cde9fa308e68457454b67a4a031"></div>
         </div>
 
+        <!-- Smartlink CTA - displayed under the converter as a high-intent click target -->
+        <p style="margin-top: 1.25rem;">
+            <a href="https://www.profitablecpmratenetwork.com/a6aqy0bfqb?key=da87be2ab005cbb8e400ba6c94a808b6"
+               target="_blank" rel="noopener"
+               style="display:inline-block; padding:10px 20px; background-color:#34c759; color:white; text-decoration:none; border-radius:8px; font-weight:600;">
+                Try More Free Tools
+            </a>
+        </p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-    <script src="/js/app.js"></script>
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const convertBtn = document.getElementById('convert-btn');
+        const status = document.getElementById('status');
+        const form = document.getElementById('upload-form');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+        dropArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFiles);
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropArea.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            dropArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles({ target: { files: files } });
+        }
+
+        function handleFiles(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+                    convertBtn.disabled = false;
+                    status.textContent = `Selected: ${file.name}`;
+                    status.className = '';
+                } else {
+                    status.textContent = 'Please select a HEIC/HEIF file';
+                    status.className = 'error';
+                    convertBtn.disabled = true;
+                }
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            
+            try {
+                convertBtn.disabled = true;
+                status.textContent = 'Converting...';
+                status.className = '';
+                
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileInput.files[0].name.replace(/\.(heic|heif)$/i, '.jpg');
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    status.textContent = 'Conversion successful!';
+                    status.className = 'success';
+                } else {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+            } catch (error) {
+                status.textContent = `Error: ${error.message}`;
+                status.className = 'error';
+            } finally {
+                convertBtn.disabled = false;
+            }
+        });
+    </script>
 </body>
-</html>
+</html> 
